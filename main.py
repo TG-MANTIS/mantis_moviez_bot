@@ -1,8 +1,8 @@
+import asyncio
 from pyrogram import Client
-
-API_ID = "API_ID" 
-API_HASH = "API_HASH"
-BOT_TOKEN = "BOT_TOKEN"
+from aiohttp import web
+from web import web_server
+from config import API_ID, API_HASH, BOT_TOKEN
 
 app = Client(
     "bot",
@@ -12,7 +12,20 @@ app = Client(
     plugins=dict(root="plugins")
 )
 
+async def main():
+    # ബോട്ട് സ്റ്റാർട്ട് ചെയ്യുന്നു
+    await app.start()
+    print("Bot Started Successfully!")
+    
+    # റെണ്ടറിനായി വെബ് സർവർ സ്റ്റാർട്ട് ചെയ്യുന്നു
+    runner = web.AppRunner(await web_server())
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+    print("Web Server Started Successfully!")
+    
+    # ബോട്ട് നിർന്നുപോകാതെ റൺ ചെയ്തുകൊണ്ടിരിക്കാൻ
+    await asyncio.Event().wait()
+
 if __name__ == "__main__":
-    app.run()
-
-
+    asyncio.get_event_loop().run_until_complete(main())
