@@ -44,11 +44,12 @@ async def auto_filter(client: Client, message: Message):
     for file in files[:max_btn]:
         file_name = file["file_name"]
         file_id = file["file_id"]
-        quality = file.get("quality", "Unknown")
-        language = file.get("language", "Unknown")
-        buttons.append([InlineKeyboardButton(f"📁 {file_name} [{quality}] [{language}]", callback_data=f"file#{file_id}")])
+        file_size = file.get("file_size", "N/A")
+        
+        # ഫയൽ നെയിമും സൈസും മാത്രം ബട്ടണിൽ കാണിക്കുന്നു
+        buttons.append([InlineKeyboardButton(f"📁 {file_name} | 📦 {file_size}", callback_data=f"file#{file_id}")])
 
-    # നാവിഗേഷൻ ബട്ടണുകൾ (കൂടുതൽ ഫയലുകൾ ഉണ്ടെങ്കിൽ Next ബട്ടൺ കാണിക്കും)
+    # നാവിഗേഷൻ ബട്ടണുകൾ
     if len(files) > max_btn:
         buttons.append([InlineKeyboardButton(f"1/{len(files)//max_btn + 1} ➔", callback_data=f"next#{query}#1")])
 
@@ -89,9 +90,8 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
         for file in current_files:
             file_name = file["file_name"]
             file_id = file["file_id"]
-            quality = file.get("quality", "Unknown")
-            language = file.get("language", "Unknown")
-            buttons.append([InlineKeyboardButton(f"📁 {file_name} [{quality}] [{language}]", callback_data=f"file#{file_id}")])
+            file_size = file.get("file_size", "N/A")
+            buttons.append([InlineKeyboardButton(f"📁 {file_size} | {file_name}", callback_data=f"file#{file_id}")])
 
         nav_buttons = []
         if page > 0:
@@ -152,7 +152,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
         
         buttons = []
         for file in files[:max_btn]:
-            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} [{file.get('quality', 'Unknown')}]", callback_data=f"file#{file['file_id']}")])
+            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} | 📦 {file.get('file_size', 'N/A')}", callback_data=f"file#{file['file_id']}")])
         
         buttons.append([
             InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{movie_query}"),
@@ -172,14 +172,14 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
 
         buttons = []
         for file in files[:10]:
-            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} [{file.get('quality', 'Unknown')}]", callback_data=f"file#{file['file_id']}")])
+            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} | 📦 {file.get('file_size', 'N/A')}", callback_data=f"file#{file['file_id']}")])
         
         buttons.append([InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")])
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
 # ഓട്ടോ ഡിലീറ്റ് ഫങ്ക്ഷൻ
 async def handle_auto_delete(message: Message, settings: dict):
-    auto_del_time = settings.get("auto_delete", 300) # ഡിഫോൾട്ട് 5 മിനിറ്റ്
+    auto_del_time = settings.get("auto_delete", 300)
     if auto_del_time > 0:
         await asyncio.sleep(auto_del_time)
         try:
