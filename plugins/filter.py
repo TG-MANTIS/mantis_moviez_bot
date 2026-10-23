@@ -15,26 +15,23 @@ async def auto_filter(client: Client, message: Message):
 
     query_lower = query.lower()
 
-    # 1. റിലീസ് ആവാത്ത മൂവികൾ പരിശോധിക്കുന്നു
     for word in UPCOMING_KEYWORDS:
         if word in query_lower:
             await message.reply_text(
-                text=f"❌ <b>ക്ഷമിക്കണം! '{query}' ഇതുവരെ തിയേറ്ററിലോ ഒടിടിയിലോ റിലീസ് ആയിട്ടില്ല. അതിനാൽ ഈ മൂവി നൽകുന്നതല്ല.</b>",
+                text=f"❌ <b>Sorry! '{query}' has not been released in theaters or OTT yet. Therefore, this movie cannot be provided.</b>",
                 quote=True
             )
             return
 
-    # 2. ഡാറ്റാബേസിൽ നിന്ന് ഫയലുകൾ തെരയുന്നു
     files = await db.search_files(query)
 
     if not files:
         await message.reply_text(
-            text=f"⚠️ <b>നിങ്ങൾ ചോദിച്ച '{query}' എന്ന മൂവി/സീരീസ് നിലവിൽ ഞങ്ങളുടെ ഡാറ്റാബേസിൽ ആഡ് ചെയ്തിട്ടില്ല. ദയവായി പിന്നീട് ശ്രമിക്കുക!</b>",
+            text=f"⚠️ <b>The movie/series '{query}' you requested is currently not added to our database. Please try again later!</b>",
             quote=True
         )
         return
 
-    # ഡ്യുവൽ ബട്ടണുകൾ (Language & Quality)
     buttons = [
         [
             InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{query}"),
@@ -45,19 +42,17 @@ async def auto_filter(client: Client, message: Message):
     reply_markup = InlineKeyboardMarkup(buttons)
     
     await message.reply_text(
-        text=f"<b>ഫലം കണ്ടെത്തി: <code>{query}</code>\nതാഴെയുള്ള ഓപ്ഷനുകൾ ഉപയോഗിച്ച് ഫിൽട്ടർ ചെയ്യുക:</b>",
+        text=f"<b>Results found for: <code>{query}</code>\nUse the options below to filter:</b>",
         reply_markup=reply_markup,
         quote=True
     )
 
-# Callback Handler for Buttons
 @Client.on_callback_query()
 async def callback_handler(client: Client, query_data: CallbackQuery):
     data = query_data.data
     
     if data.startswith("lang_menu#"):
         movie_query = data.split("#")[1]
-        # ഇന്ത്യൻ ലാംഗ്വേജുകളും വിദേശ ലാംഗ്വേജുകളും ഉൾപ്പെടുത്തിയ മെനു
         buttons = [
             [
                 InlineKeyboardButton("Malayalam", callback_data=f"filter#{movie_query}#Malayalam#None"),
@@ -115,7 +110,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
         files = await db.filter_files(movie_query, lang_val, qual_val)
 
         if not files:
-            await query_data.answer("ക്ഷമിക്കണം, ഈ ഫിൽട്ടറിൽ ഫയലുകൾ ലഭ്യമല്ല!", show_alert=True)
+            await query_data.answer("Sorry, no files available for this filter!", show_alert=True)
             return
 
         buttons = []
@@ -127,13 +122,13 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
             
             btn_text = f"📁 {file_name} [{quality}] [{language}]"
             buttons.append(
-                [InlineKeyboardButton(btn_text, callback_data=f"get#{file_id}")]
+                [InlineKeyboardButton(btn_text, callback_data=f"file#{file_id}")]
             )
         
-        buttons.append([InlineKeyboardButton("« Back to Menu", callback_data=f"back#{movie_query}")],)
+        buttons.append([InlineKeyboardButton("« Back to Menu", callback_data=f"back#{movie_query}")])
 
         reply_markup = InlineKeyboardMarkup(buttons)
         await query_data.message.edit_text(
-            text=f"<b>ഫിൽട്ടർ ചെയ്ത ഫയലുകൾ (Language: {lang}, Quality: {qual}):</b>",
+            text=f"<b>Filtered Files (Language: {lang}, Quality: {qual}):</b>",
             reply_markup=reply_markup
         )
