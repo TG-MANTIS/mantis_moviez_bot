@@ -10,7 +10,7 @@ CANCEL_INDEX = {}
 async def index_forward_handler(client: Client, message: Message):
     media = message.video or message.document or message.audio
     if not media:
-        await message.reply_text("<b>⚠️ Please forward a file from your Database Channel!</b>", quote=True)
+        await message.reply_text("<b>⚠️ Please forward a file from your DB Channel!</b>", quote=True)
         return
 
     forward_from = message.forward_from_chat
@@ -33,7 +33,7 @@ async def index_forward_handler(client: Client, message: Message):
             "<b>📊 Database Indexing Request:\n\n"
             f"📁 Channel ID: <code>{db_channel_id}</code>\n"
             f"🔢 Start Message ID: <code>{start_message_id}</code>\n\n"
-            "Do you want to add files from this channel?</b>"
+            "Do you want to add files?</b>"
         ),
         reply_markup=InlineKeyboardMarkup(buttons),
         quote=True
@@ -41,7 +41,7 @@ async def index_forward_handler(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^cancel_index$"))
 async def cancel_index_query(client: Client, query: CallbackQuery):
-    await query.message.edit_text("<b>❌ Database indexing has been cancelled.</b>")
+    await query.message.edit_text("<b>❌ Indexing cancelled.</b>")
     await query.answer()
 
 @Client.on_callback_query(filters.regex(r"^start_index#"))
@@ -58,7 +58,7 @@ async def start_indexing_process(client: Client, query: CallbackQuery):
     ])
 
     status_msg = await query.message.edit_text(
-        text="<b>🚀 Indexing process started... Scanning messages.</b>",
+        text="<b>🚀 Indexing started...</b>",
         reply_markup=buttons
     )
     await query.answer()
@@ -71,7 +71,7 @@ async def start_indexing_process(client: Client, query: CallbackQuery):
     try:
         async for message in client.get_chat_history(db_channel_id, limit=5000):
             if CANCEL_INDEX.get(user_id, False):
-                await status_msg.edit_text("<b>⚠️ Indexing process stopped by admin!</b>")
+                await status_msg.edit_text("<b>⚠️ Indexing stopped by admin!</b>")
                 return
 
             media = message.video or message.document or message.audio
@@ -95,7 +95,7 @@ async def start_indexing_process(client: Client, query: CallbackQuery):
                     await status_msg.edit_text(
                         text=(
                             f"<b>📊 Indexing in Progress...\n\n"
-                            f"📁 Total Scanned: {added_files + duplicates}\n"
+                            f"📁 Scanned: {added_files + duplicates}\n"
                             f"✅ Added: {added_files}\n"
                             f"🔄 Duplicates: {duplicates}\n"
                             f"🎬 Videos: {videos}\n"
@@ -107,7 +107,7 @@ async def start_indexing_process(client: Client, query: CallbackQuery):
 
         await status_msg.edit_text(
             text=(
-                f"<b>🎉 Indexing Completed Successfully!\n\n"
+                f"<b>🎉 Indexing Completed!\n\n"
                 f"✅ Added: {added_files}\n"
                 f"🔄 Duplicates: {duplicates}\n"
                 f"🎬 Videos: {videos}\n"
