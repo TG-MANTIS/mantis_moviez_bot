@@ -1,3 +1,4 @@
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from database.database import db
@@ -14,44 +15,103 @@ async def auto_filter(client: Client, message: Message):
         return
 
     query_lower = query.lower()
+    chat_id = message.chat.id
+    settings = await db.get_settings(chat_id)
 
     for word in UPCOMING_KEYWORDS:
         if word in query_lower:
-            await message.reply_text(
+            reply = await message.reply_text(
                 text=f"❌ <b>Sorry! '{query}' has not been released in theaters or OTT yet. Therefore, this movie cannot be provided.</b>",
                 quote=True
             )
+            await handle_auto_delete(reply, settings)
             return
 
     files = await db.search_files(query)
 
     if not files:
-        await message.reply_text(
+        reply = await message.reply_text(
             text=f"⚠️ <b>The movie/series '{query}' you requested is currently not added to our database. Please try again later!</b>",
             quote=True
         )
+        await handle_auto_delete(reply, settings)
         return
 
-    buttons = [
-        [
-            InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{query}"),
-            InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{query}")
-        ]
-    ]
+    # Pagination Setup (Page 0)
+    max_btn = settings.get("max_btn", 8)
+    buttons = []
+    
+    for file in files[:max_btn]:
+        file_name = file["file_name"]
+        file_id = file["file_id"]
+        quality = file.get("quality", "Unknown")
+        language = file.get("language", "Unknown")
+        buttons.append([InlineKeyboardButton(f"📁 {file_name} [{quality}] [{language}]", callback_data=f"file#{file_id}")])
+
+    # നാവിഗേഷൻ ബട്ടണുകൾ (കൂടുതൽ ഫയലുകൾ ഉണ്ടെങ്കിൽ Next ബട്ടൺ കാണിക്കും)
+    if len(files) > max_btn:
+        buttons.append([InlineKeyboardButton(f"1/{len(files)//max_btn + 1} ➔", callback_data=f"next#{query}#1")])
+
+    buttons.append([
+        InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{query}"),
+        InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{query}")
+    ])
     
     reply_markup = InlineKeyboardMarkup(buttons)
     
-    await message.reply_text(
-        text=f"<b>Results found for: <code>{query}</code>\nUse the options below to filter:</b>",
+    reply = await message.reply_text(
+        text=f"<b>Results found for: <code>{query}</code>\nSelect your file below:</b>",
         reply_markup=reply_markup,
         quote=True
     )
+    await handle_auto_delete(reply, settings)
 
+# Callback Handler for Pagination & Filtering
 @Client.on_callback_query()
 async def callback_handler(client: Client, query_data: CallbackQuery):
     data = query_data.data
-    
-    if data.startswith("lang_menu#"):
+    chat_id = query_data.message.chat.id
+    settings = await db.get_settings(chat_id)
+
+    if data.startswith("next#") or data.startswith("back#"):
+        _, movie_query, page = data.split("#")
+        page = int(page)
+        max_btn = settings.get("max_btn", 8)
+        
+        files = await db.search_files(movie_query)
+        total_pages = len(files) // max_btn + (1 if len(files) % max_btn > 0 else 0)
+        
+        start_idx = page * max_btn
+        end_idx = start_idx + max_btn
+        current_files = files[start_idx:end_idx]
+
+        buttons = []
+        for file in current_files:
+            file_name = file["file_name"]
+            file_id = file["file_id"]
+            quality = file.get("quality", "Unknown")
+            language = file.get("language", "Unknown")
+            buttons.append([InlineKeyboardButton(f"📁 {file_name} [{quality}] [{language}]", callback_data=f"file#{file_id}")])
+
+        nav_buttons = []
+        if page > 0:
+            nav_buttons.append(InlineKeyboardButton("⬅️ Back", callback_data=f"back#{movie_query}#{page-1}"))
+        
+        nav_buttons.append(InlineKeyboardButton(f"{page+1}/{total_pages}", callback_data="pages"))
+
+        if page + 1 < total_pages:
+            nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"next#{movie_query}#{page+1}"))
+
+        buttons.append(nav_buttons)
+        buttons.append([
+            InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{movie_query}"),
+            InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{movie_query}")
+        ])
+
+        await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
+        await query_data.answer()
+
+    elif data.startswith("lang_menu#"):
         movie_query = data.split("#")[1]
         buttons = [
             [
@@ -66,14 +126,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
                 InlineKeyboardButton("Hindi", callback_data=f"filter#{movie_query}#Hindi#None"),
                 InlineKeyboardButton("English", callback_data=f"filter#{movie_query}#English#None")
             ],
-            [
-                InlineKeyboardButton("Korean", callback_data=f"filter#{movie_query}#Korean#None"),
-                InlineKeyboardButton("Japanese", callback_data=f"filter#{movie_query}#Japanese#None")
-            ],
-            [
-                InlineKeyboardButton("Chinese", callback_data=f"filter#{movie_query}#Chinese#None"),
-                InlineKeyboardButton("« Back", callback_data=f"back#{movie_query}")
-            ]
+            [InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")]
         ]
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -88,18 +141,23 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
                 InlineKeyboardButton("1080p", callback_data=f"filter#{movie_query}#None#1080p"),
                 InlineKeyboardButton("4K", callback_data=f"filter#{movie_query}#None#4K")
             ],
-            [InlineKeyboardButton("« Back", callback_data=f"back#{movie_query}")]
+            [InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")]
         ]
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
-    elif data.startswith("back#"):
+    elif data.startswith("home#"):
         movie_query = data.split("#")[1]
-        buttons = [
-            [
-                InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{movie_query}"),
-                InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{movie_query}")
-            ]
-        ]
+        files = await db.search_files(movie_query)
+        max_btn = settings.get("max_btn", 8)
+        
+        buttons = []
+        for file in files[:max_btn]:
+            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} [{file.get('quality', 'Unknown')}]", callback_data=f"file#{file['file_id']}")])
+        
+        buttons.append([
+            InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{movie_query}"),
+            InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{movie_query}")
+        ])
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
     elif data.startswith("filter#"):
@@ -108,27 +166,23 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
         qual_val = None if qual == "None" else qual
 
         files = await db.filter_files(movie_query, lang_val, qual_val)
-
         if not files:
-            await query_data.answer("Sorry, no files available for this filter!", show_alert=True)
+            await query_data.answer("No files available for this filter!", show_alert=True)
             return
 
         buttons = []
-        for file in files:
-            file_name = file["file_name"]
-            file_id = file["file_id"]
-            quality = file.get("quality", "Unknown")
-            language = file.get("language", "Unknown")
-            
-            btn_text = f"📁 {file_name} [{quality}] [{language}]"
-            buttons.append(
-                [InlineKeyboardButton(btn_text, callback_data=f"file#{file_id}")]
-            )
+        for file in files[:10]:
+            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} [{file.get('quality', 'Unknown')}]", callback_data=f"file#{file['file_id']}")])
         
-        buttons.append([InlineKeyboardButton("« Back to Menu", callback_data=f"back#{movie_query}")])
+        buttons.append([InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")])
+        await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query_data.message.edit_text(
-            text=f"<b>Filtered Files (Language: {lang}, Quality: {qual}):</b>",
-            reply_markup=reply_markup
-        )
+# ഓട്ടോ ഡിലീറ്റ് ഫങ്ക്ഷൻ
+async def handle_auto_delete(message: Message, settings: dict):
+    auto_del_time = settings.get("auto_delete", 300) # ഡിഫോൾട്ട് 5 മിനിറ്റ്
+    if auto_del_time > 0:
+        await asyncio.sleep(auto_del_time)
+        try:
+            await message.delete()
+        except:
+            pass
