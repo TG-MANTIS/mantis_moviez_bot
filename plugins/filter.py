@@ -1,9 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from database.database import db
-import datetime
 
-# റിലീസ് ആവാത്തതോ വരാനിരിക്കുന്നതോ ആയ സിനിമകൾ തിരിച്ചറിയാനുള്ള ചില പ്രധാന വാക്കുകൾ (Keywords)
 UPCOMING_KEYWORDS = ["upcoming", "teaser", "trailer", "release", "2027", "2028", "announcement", "first look"]
 
 @Client.on_message(filters.text & ~filters.command(["start", "index"]) & (filters.group | filters.private))
@@ -17,11 +15,11 @@ async def auto_filter(client: Client, message: Message):
 
     query_lower = query.lower()
 
-    # 1. റിലീസ് ആവാത്ത മൂവികളാണോ എന്ന് പരിശോധിക്കുന്നു
+    # 1. റിലീസ് ആവാത്ത മൂവികൾ പരിശോധിക്കുന്നു
     for word in UPCOMING_KEYWORDS:
         if word in query_lower:
             await message.reply_text(
-                text=f"❌ <b>ക്ഷമിക്കണം! '{query}' ഇതുവരെ തിയേറ്ററിലോ ഒടിടിയിലോ റിലീസ് ആയിട്ടില്ല. അതിനാൽ ഈ മൂവി നൽകാൻ കഴിയുന്നതല്ല.</b>",
+                text=f"❌ <b>ക്ഷമിക്കണം! '{query}' ഇതുവരെ തിയേറ്ററിലോ ഒടിടിയിലോ റിലീസ് ആയിട്ടില്ല. അതിനാൽ ഈ മൂവി നൽകുന്നതല്ല.</b>",
                 quote=True
             )
             return
@@ -30,14 +28,13 @@ async def auto_filter(client: Client, message: Message):
     files = await db.search_files(query)
 
     if not files:
-        # ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ ലഭ്യമല്ല എന്ന മെസ്സേജ് അയക്കുന്നു
         await message.reply_text(
-            text=f"⚠️ <b>നിങ്ങൾ ചോദിച്ച '{query}' എന്ന മൂവി നിലവിൽ ഞങ്ങളുടെ ഡാറ്റാബേസിൽ ആഡ് ചെയ്തിട്ടില്ല. ദയവായി പിന്നീട് ശ്രമിക്കുക!</b>",
+            text=f"⚠️ <b>നിങ്ങൾ ചോദിച്ച '{query}' എന്ന മൂവി/സീരീസ് നിലവിൽ ഞങ്ങളുടെ ഡാറ്റാബേസിൽ ആഡ് ചെയ്തിട്ടില്ല. ദയവായി പിന്നീട് ശ്രമിക്കുക!</b>",
             quote=True
         )
         return
 
-    # ഫയലുകൾ ഉണ്ടെങ്കിൽ ലാംഗ്വേജും ക്വാളിറ്റിയും തിരഞ്ഞെടുക്കാനുള്ള ഡ്യുവൽ ബട്ടണുകൾ കാണിക്കുന്നു
+    # ഡ്യുവൽ ബട്ടണുകൾ (Language & Quality)
     buttons = [
         [
             InlineKeyboardButton("🌐 Language", callback_data=f"lang_menu#{query}"),
@@ -53,23 +50,35 @@ async def auto_filter(client: Client, message: Message):
         quote=True
     )
 
-# ബട്ടണുകൾ ക്ലിക്ക് ചെയ്യുമ്പോൾ വർക്ക് ചെയ്യുന്ന ഭാഗം (Callback Query Handler)
+# Callback Handler for Buttons
 @Client.on_callback_query()
 async def callback_handler(client: Client, query_data: CallbackQuery):
     data = query_data.data
     
     if data.startswith("lang_menu#"):
         movie_query = data.split("#")[1]
+        # ഇന്ത്യൻ ലാംഗ്വേജുകളും വിദേശ ലാംഗ്വേജുകളും ഉൾപ്പെടുത്തിയ മെനു
         buttons = [
             [
                 InlineKeyboardButton("Malayalam", callback_data=f"filter#{movie_query}#Malayalam#None"),
                 InlineKeyboardButton("Tamil", callback_data=f"filter#{movie_query}#Tamil#None")
             ],
             [
-                InlineKeyboardButton("English", callback_data=f"filter#{movie_query}#English#None"),
+                InlineKeyboardButton("Telugu", callback_data=f"filter#{movie_query}#Telugu#None"),
                 InlineKeyboardButton("Kannada", callback_data=f"filter#{movie_query}#Kannada#None")
             ],
-            [InlineKeyboardButton("« Back", callback_data=f"back#{movie_query}")]
+            [
+                InlineKeyboardButton("Hindi", callback_data=f"filter#{movie_query}#Hindi#None"),
+                InlineKeyboardButton("English", callback_data=f"filter#{movie_query}#English#None")
+            ],
+            [
+                InlineKeyboardButton("Korean", callback_data=f"filter#{movie_query}#Korean#None"),
+                InlineKeyboardButton("Japanese", callback_data=f"filter#{movie_query}#Japanese#None")
+            ],
+            [
+                InlineKeyboardButton("Chinese", callback_data=f"filter#{movie_query}#Chinese#None"),
+                InlineKeyboardButton("« Back", callback_data=f"back#{movie_query}")
+            ]
         ]
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -121,7 +130,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
                 [InlineKeyboardButton(btn_text, callback_data=f"get#{file_id}")]
             )
         
-        buttons.append([InlineKeyboardButton("« Back to Menu", callback_data=f"back#{movie_query}")])
+        buttons.append([InlineKeyboardButton("« Back to Menu", callback_data=f"back#{movie_query}")],)
 
         reply_markup = InlineKeyboardMarkup(buttons)
         await query_data.message.edit_text(
