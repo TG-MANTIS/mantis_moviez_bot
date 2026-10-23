@@ -9,7 +9,7 @@ from database.database import db
 async def broadcast_users(client: Client, message: Message):
     reply_msg = message.reply_to_message
     if not reply_msg:
-        await message.reply_text("<b>Reply to a message to broadcast to users!</b>", quote=True)
+        await message.reply_text("<b>Reply to a message!</b>", quote=True)
         return
 
     m = await message.reply_text("<b>🚀 Users Broadcast started...</b>", quote=True)
@@ -29,18 +29,16 @@ async def broadcast_users(client: Client, message: Message):
                 success += 1
             except:
                 failed += 1
-        except (InputUserDeactivated, UserIsBlocked):
-            failed += 1
         except:
             failed += 1
 
-    await m.edit_text(f"<b>📊 Users Broadcast Completed!\n\nSuccessful: {success}\nFailed: {failed}</b>")
+    await m.edit_text(f"<b>📊 Users Broadcast Completed!\nSuccessful: {success}\nFailed: {failed}</b>")
 
 @Client.on_message(filters.command(["gcast", "groupbroadcast"]) & filters.user(ADMINS) & filters.reply)
 async def broadcast_groups(client: Client, message: Message):
     reply_msg = message.reply_to_message
     if not reply_msg:
-        await message.reply_text("<b>Reply to a message to broadcast to groups!</b>", quote=True)
+        await message.reply_text("<b>Reply to a message!</b>", quote=True)
         return
 
     m = await message.reply_text("<b>🚀 Groups Broadcast started...</b>", quote=True)
@@ -63,7 +61,7 @@ async def broadcast_groups(client: Client, message: Message):
         except:
             failed += 1
 
-    await m.edit_text(f"<b>📊 Groups Broadcast Completed!\n\nSuccessful: {success}\nFailed: {failed}</b>")
+    await m.edit_text(f"<b>📊 Groups Broadcast Completed!\nSuccessful: {success}\nFailed: {failed}</b>")
 
 @Client.on_message(filters.private & ~filters.user(ADMINS), group=-1)
 async def auto_save_users(client, message):
