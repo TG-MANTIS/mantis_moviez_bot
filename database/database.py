@@ -9,6 +9,7 @@ class Database:
         self._settings = self._db["bot_settings"]
         self._users = self._db["bot_users"]
         self._groups = self._db["bot_groups"]
+        self._manual_filters = self._db["manual_filters"] # മാനുവൽ ഫിൽട്ടറിന് വേണ്ടി
 
     async def save_file(self, file_id, file_name, file_size):
         quality = self.extract_quality(file_name)
@@ -41,7 +42,7 @@ class Database:
     async def search_files(self, query):
         filter_query = {"file_name": {'$regex': query, '$options': 'i'}}
         cursor = self._col.find(filter_query)
-        files = await cursor.to_list(length=100) # കൂടുതൽ ഫയലുകൾ എടുക്കാൻ (Pagination-ന് വേണ്ടി)
+        files = await cursor.to_list(length=100)
         return files
 
     async def filter_files(self, query, lang=None, qual=None):
@@ -62,8 +63,8 @@ class Database:
             "goodbye": True,
             "f_sub": True,
             "imdb": True,
-            "auto_delete": 300, # സെക്കൻഡുകളിൽ (ഉദാ: 300 sec = 5 mins). 0 എന്നാൽ OFF
-            "max_btn": 8,       # ഒരു പേജിൽ കാണിക്കേണ്ട ഫയൽ ബട്ടണുകളുടെ എണ്ണം
+            "auto_delete": 300,
+            "max_btn": 8,
             "custom_photo": None,
             "caption": "<b>📁 File: {file_name}\n📦 Size: {file_size}\n\n🤖 Powered by Auto-Filter Bot</b>",
             "f_sub_channel": None
@@ -90,5 +91,20 @@ class Database:
 
     async def get_all_groups(self):
         return self._groups.find({})
+
+    # --- Manual Filter Functions ---
+    async def save_manual_filter(self, chat_id, keyword, reply_text):
+        await self._manual_filters.update_one(
+            {"chat_id": chat_id, "keyword": keyword.lower()},
+            {"$set": {"reply_text": reply_text}},
+            upsert=True
+        )
+
+    async def get_manual_filter(self, chat_id, keyword):
+        return await self._manual_filters.find_one({"chat_id": chat_id, "keyword": keyword.lower()})
+
+    async def delete_manual_filter(self, chat_id, keyword):
+        result = await self._manual_filters.delete_one({"chat_id": chat_id, "keyword": keyword.lower()})
+        return result.deleted_count > 0
 
 db = Database(DATABASE_URL, DATABASE_NAME)
