@@ -9,7 +9,7 @@ class Database:
         self._settings = self._db["bot_settings"]
         self._users = self._db["bot_users"]
         self._groups = self._db["bot_groups"]
-        self._manual_filters = self._db["manual_filters"] # മാനുവൽ ഫിൽട്ടറിന് വേണ്ടി
+        self._manual_filters = self._db["manual_filters"]
 
     async def save_file(self, file_id, file_name, file_size):
         quality = self.extract_quality(file_name)
@@ -23,6 +23,24 @@ class Database:
             "language": language
         }
         await self._col.insert_one(file_data)
+
+    async def save_file_unique(self, file_id, file_name, file_size):
+        quality = self.extract_quality(file_name)
+        language = self.extract_language(file_name)
+
+        existing = await self._col.find_one({"file_name": file_name})
+        if existing:
+            return False
+
+        file_data = {
+            "file_id": file_id,
+            "file_name": file_name,
+            "file_size": file_size,
+            "quality": quality,
+            "language": language
+        }
+        await self._col.insert_one(file_data)
+        return True
 
     def extract_quality(self, text):
         qualities = ["480p", "720p", "1080p", "2160p", "4K", "HDR"]
@@ -67,7 +85,9 @@ class Database:
             "max_btn": 8,
             "custom_photo": None,
             "caption": "<b>📁 File: {file_name}\n📦 Size: {file_size}\n\n🤖 Powered by Auto-Filter Bot</b>",
-            "f_sub_channel": None
+            "f_sub_channel": None,
+            "start_photo": "https://telegra.ph/file/sample.jpg",
+            "start_text": "<b>👋 Hello {mention},\n\nWelcome to Auto-Filter Bot! Send me any movie or series name to search files.</b>"
         }
         user = await self._settings.find_one({"chat_id": chat_id})
         if not user:
@@ -92,7 +112,6 @@ class Database:
     async def get_all_groups(self):
         return self._groups.find({})
 
-    # --- Manual Filter Functions ---
     async def save_manual_filter(self, chat_id, keyword, reply_text):
         await self._manual_filters.update_one(
             {"chat_id": chat_id, "keyword": keyword.lower()},
