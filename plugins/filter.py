@@ -21,7 +21,7 @@ async def auto_filter(client: Client, message: Message):
     for word in UPCOMING_KEYWORDS:
         if word in query_lower:
             reply = await message.reply_text(
-                text=f"❌ <b>Sorry! '{query}' has not been released in theaters or OTT yet. Therefore, this movie cannot be provided.</b>",
+                text=f"❌ <b>Sorry! '{query}' has not been released in theaters or OTT yet.</b>",
                 quote=True
             )
             await handle_auto_delete(reply, settings)
@@ -31,13 +31,12 @@ async def auto_filter(client: Client, message: Message):
 
     if not files:
         reply = await message.reply_text(
-            text=f"⚠️ <b>The movie/series '{query}' you requested is currently not added to our database. Please try again later!</b>",
+            text=f"⚠️ <b>The movie/series '{query}' you requested is not found in database!</b>",
             quote=True
         )
         await handle_auto_delete(reply, settings)
         return
 
-    # Pagination Setup (Page 0)
     max_btn = settings.get("max_btn", 8)
     buttons = []
     
@@ -45,11 +44,8 @@ async def auto_filter(client: Client, message: Message):
         file_name = file["file_name"]
         file_id = file["file_id"]
         file_size = file.get("file_size", "N/A")
-        
-        # ഫയൽ നെയിമും സൈസും മാത്രം ബട്ടണിൽ കാണിക്കുന്നു
-        buttons.append([InlineKeyboardButton(f"📁 {file_name} | 📦 {file_size}", callback_data=f"file#{file_id}")])
+        buttons.append([InlineKeyboardButton(f"📁 {file_size} | {file_name}", callback_data=f"file#{file_id}")])
 
-    # നാവിഗേഷൻ ബട്ടണുകൾ
     if len(files) > max_btn:
         buttons.append([InlineKeyboardButton(f"1/{len(files)//max_btn + 1} ➔", callback_data=f"next#{query}#1")])
 
@@ -67,7 +63,6 @@ async def auto_filter(client: Client, message: Message):
     )
     await handle_auto_delete(reply, settings)
 
-# Callback Handler for Pagination & Filtering
 @Client.on_callback_query()
 async def callback_handler(client: Client, query_data: CallbackQuery):
     data = query_data.data
@@ -91,7 +86,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
             file_name = file["file_name"]
             file_id = file["file_id"]
             file_size = file.get("file_size", "N/A")
-            buttons.append([InlineKeyboardButton(f"📁 {file_size} | {file_name}", callback_data=f"file#{file_id}")])
+            buttons.append([InlineKeyboardButton(f"📁 {file_name} | 📦 {file_size}", callback_data=f"file#{file_id}")])
 
         nav_buttons = []
         if page > 0:
@@ -177,7 +172,6 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
         buttons.append([InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")])
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
-# ഓട്ടോ ഡിലീറ്റ് ഫങ്ക്ഷൻ
 async def handle_auto_delete(message: Message, settings: dict):
     auto_del_time = settings.get("auto_delete", 300)
     if auto_del_time > 0:
