@@ -10,6 +10,7 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
     chat_id_settings = query.message.chat.id
     settings = await db.get_settings(chat_id_settings)
     
+    # Force Subscription Check
     if settings.get("f_sub", True):
         f_sub_channel = settings.get("f_sub_channel")
         if f_sub_channel:
@@ -38,9 +39,21 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
     file_id = query.data.split("#")[1]
     
     try:
+        # ഡാറ്റാബേസിൽ നിന്ന് ഫയൽ വിവരങ്ങൾ എടുക്കുന്നു
+        file_data = await db._col.find_one({"file_id": file_id}) if hasattr(db, "_col") else None
+        file_name = file_data.get("file_name", "Movie File") if file_data else "Movie File"
+        file_size = file_data.get("file_size", "N/A") if file_data else "N/A"
+        
         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🗑️ Close", callback_data="close_media")]])
-        caption = settings.get("caption", "<b>📁 File: {file_name}\n📦 Size: {file_size}</b>")
-        caption = caption.format(file_name="Movie File", file_size="")
+        
+        # കസ്റ്റം ക്യാപ്ഷൻ ഫോർമാറ്റ് ചെയ്യുന്നു
+        default_caption = "<b>📁 File: {file_name}\n📦 Size: {file_size}\n\n🤖 Powered by Auto-Filter Bot</b>"
+        custom_caption = settings.get("caption", default_caption)
+        
+        caption = custom_caption.format(
+            file_name=file_name,
+            file_size=file_size
+        )
 
         await client.send_cached_media(
             chat_id=user_id,
@@ -48,7 +61,8 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
             caption=caption,
             reply_markup=reply_markup
         )
-    except Exception:
+    except Exception as e:
+        print(f"Error sending file to PM: {e}")
         await query.answer("Error sending file!", show_alert=True)
 
 @Client.on_callback_query(filters.regex(r"^close_media$"))
