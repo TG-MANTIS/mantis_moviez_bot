@@ -34,6 +34,10 @@ async def open_settings(client: Client, message: Message):
             InlineKeyboardButton("📝 Set Custom Caption", callback_data="info_caption")
         ],
         [
+            InlineKeyboardButton("🌅 Set Start Photo", callback_data="info_startphoto"),
+            InlineKeyboardButton("📝 Set Start Text", callback_data="info_starttext")
+        ],
+        [
             InlineKeyboardButton("❌ Close Menu", callback_data="close_media")
         ]
     ]
@@ -60,23 +64,119 @@ async def toggle_settings(client: Client, query: CallbackQuery):
         await db.update_setting(chat_id, "goodbye", new_val)
         await query.answer(f"Goodbye Message turned {'ON' if new_val else 'OFF'}!")
 
+    elif data == "toggle_fsub":
+        new_val = not settings.get("f_sub", True)
+        await db.update_setting(chat_id, "f_sub", new_val)
+        await query.answer(f"Force Subscription turned {'ON' if new_val else 'OFF'}!")
+
     elif data == "toggle_imdb":
         new_val = not settings.get("imdb", True)
         await db.update_setting(chat_id, "imdb", new_val)
         await query.answer(f"IMDb Poster turned {'ON' if new_val else 'OFF'}!")
 
-    # പാനൽ റിഫ്രഷ് ചെയ്യാൻ settings കമാൻഡ് ഫംഗ്ഷൻ പോലെ റീലോഡ് ചെയ്യാം
-    await query.answer("Updated!")
+    settings = await db.get_settings(chat_id)
+    w_status = "✅ ON" if settings.get("welcome", True) else "❌ OFF"
+    g_status = "✅ ON" if settings.get("goodbye", True) else "❌ OFF"
+    f_status = "✅ ON" if settings.get("f_sub", True) else "❌ OFF"
+    i_status = "✅ ON" if settings.get("imdb", True) else "❌ OFF"
+    autodel_time = settings.get("auto_delete", 300)
+    autodel_status = f"✅ ({autodel_time}s)" if autodel_time > 0 else "❌ OFF"
+    max_btn = settings.get("max_btn", 8)
 
-# Auto Delete Info & Command
+    buttons = [
+        [
+            InlineKeyboardButton(f"👋 Welcome: {w_status}", callback_data="toggle_welcome"),
+            InlineKeyboardButton(f"🚶‍♂️ Goodbye: {g_status}", callback_data="toggle_goodbye")
+        ],
+        [
+            InlineKeyboardButton("📢 Force Sub (F-Sub)", callback_data="info_fsub"),
+            InlineKeyboardButton(f"🎬 IMDb Poster: {i_status}", callback_data="toggle_imdb")
+        ],
+        [
+            InlineKeyboardButton(f"🗑️ Auto Delete: {autodel_status}", callback_data="info_autodel"),
+            InlineKeyboardButton(f"🔢 Results Count: [{max_btn}]", callback_data="info_maxbtn")
+        ],
+        [
+            InlineKeyboardButton("🖼️ Set Custom Photo", callback_data="info_photo"),
+            InlineKeyboardButton("📝 Set Custom Caption", callback_data="info_caption")
+        ],
+        [
+            InlineKeyboardButton("🌅 Set Start Photo", callback_data="info_startphoto"),
+            InlineKeyboardButton("📝 Set Start Text", callback_data="info_starttext")
+        ],
+        [
+            InlineKeyboardButton("❌ Close Menu", callback_data="close_media")
+        ]
+    ]
+
+    await query.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
+
+@Client.on_callback_query(filters.regex(r"^info_fsub$"))
+async def fsub_info(client: Client, query: CallbackQuery):
+    text = (
+        "<b>📢 Force Subscription (F-Sub) Setup Instructions:</b>\n\n"
+        "Send the command in bot private chat:\n"
+        "<code>/setfsub channel_id</code>\n\n"
+        "<b>Example:</b>\n"
+        "<code>/setfsub -1001234567890</code>"
+    )
+    await query.message.reply_text(text=text)
+    await query.answer()
+
+@Client.on_message(filters.command("setfsub") & filters.user(ADMINS))
+async def save_fsub_channel(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply_text("<b>Please provide the channel ID!</b>", quote=True)
+        return
+    channel_id = message.text.split(None, 1)[1].strip()
+    await db.update_setting(message.chat.id, "f_sub_channel", channel_id)
+    await message.reply_text(f"<b>✅ F-Sub channel ID saved!</b>\nID: `{channel_id}`", quote=True)
+
+@Client.on_callback_query(filters.regex(r"^info_photo$"))
+async def photo_info(client: Client, query: CallbackQuery):
+    text = (
+        "<b>🖼️ Custom Photo Setup Instructions:</b>\n\n"
+        "<code>/setphoto direct_image_url</code>\n\n"
+        "<b>Example:</b>\n"
+        "<code>/setphoto https://telegra.ph/file/sample.jpg</code>"
+    )
+    await query.message.reply_text(text=text)
+    await query.answer()
+
+@Client.on_message(filters.command("setphoto") & filters.user(ADMINS))
+async def save_custom_photo(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply_text("<b>Please provide the image URL!</b>", quote=True)
+        return
+    photo_url = message.text.split(None, 1)[1].strip()
+    await db.update_setting(message.chat.id, "custom_photo", photo_url)
+    await message.reply_text(f"<b>✅ Custom photo updated!</b>\n`{photo_url}`", quote=True)
+
+@Client.on_callback_query(filters.regex(r"^info_caption$"))
+async def caption_info(client: Client, query: CallbackQuery):
+    text = (
+        "<b>📝 Custom Caption Setup Guide:</b>\n\n"
+        "<code>/setcaption Your custom caption text here</code>\n\n"
+        "<b>Variables:</b> `<code>{file_name}</code>`, `<code>{file_size}</code>`"
+    )
+    await query.message.reply_text(text=text)
+    await query.answer()
+
+@Client.on_message(filters.command("setcaption") & filters.user(ADMINS))
+async def save_custom_caption(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply_text("<b>Please provide caption text!</b>", quote=True)
+        return
+    caption_text = message.text.split(None, 1)[1]
+    await db.update_setting(message.chat.id, "caption", caption_text)
+    await message.reply_text(f"<b>✅ Custom caption updated!</b>\n{caption_text}", quote=True)
+
 @Client.on_callback_query(filters.regex(r"^info_autodel$"))
 async def autodel_info(client: Client, query: CallbackQuery):
     text = (
-        "<b>🗑️ Auto Delete Setup Instructions:</b>\n\n"
-        "Automatically delete movie result messages in groups after a certain time to keep the group clean.\n\n"
-        "<b>How to set up? (Time in seconds, 0 to disable):</b>\n"
-        "<code>/setautodel 300</code> (300 seconds = 5 minutes)\n"
-        "<code>/setautodel 0</code> (To turn OFF)"
+        "<b>🗑️ Auto Delete Setup:</b>\n\n"
+        "<code>/setautodel 300</code> (300 seconds)\n"
+        "<code>/setautodel 0</code> (Turn OFF)"
     )
     await query.message.reply_text(text=text)
     await query.answer()
@@ -84,20 +184,17 @@ async def autodel_info(client: Client, query: CallbackQuery):
 @Client.on_message(filters.command("setautodel") & filters.user(ADMINS))
 async def save_autodel(client: Client, message: Message):
     if len(message.command) < 2:
-        await message.reply_text("<b>Please provide time in seconds!</b>\nExample: `/setautodel 300`", quote=True)
+        await message.reply_text("<b>Provide seconds!</b>", quote=True)
         return
     seconds = int(message.text.split(None, 1)[1])
     await db.update_setting(message.chat.id, "auto_delete", seconds)
-    await message.reply_text(f"<b>✅ Auto Delete time successfully set to {seconds} seconds!</b>", quote=True)
+    await message.reply_text(f"<b>✅ Auto delete set to {seconds}s!</b>", quote=True)
 
-# Max Results Buttons Info & Command
 @Client.on_callback_query(filters.regex(r"^info_maxbtn$"))
 async def maxbtn_info(client: Client, query: CallbackQuery):
     text = (
-        "<b>🔢 Results Count Setup Instructions:</b>\n\n"
-        "Set how many file buttons should appear per page in group results.\n\n"
-        "<b>How to set up?</b>\n"
-        "<code>/setmaxbtn 8</code> (Shows 8 buttons per page)"
+        "<b>🔢 Results Count Setup:</b>\n\n"
+        "<code>/setmaxbtn 8</code>"
     )
     await query.message.reply_text(text=text)
     await query.answer()
@@ -105,10 +202,45 @@ async def maxbtn_info(client: Client, query: CallbackQuery):
 @Client.on_message(filters.command("setmaxbtn") & filters.user(ADMINS))
 async def save_maxbtn(client: Client, message: Message):
     if len(message.command) < 2:
-        await message.reply_text("<b>Please provide the number of buttons!</b>\nExample: `/setmaxbtn 8`", quote=True)
+        await message.reply_text("<b>Provide number!</b>", quote=True)
         return
     count = int(message.text.split(None, 1)[1])
     await db.update_setting(message.chat.id, "max_btn", count)
-    await message.reply_text(f"<b>✅ Max filter buttons per page set to {count}!</b>", quote=True)
+    await message.reply_text(f"<b>✅ Max buttons set to {count}!</b>", quote=True)
 
-# (മുമ്പത്തെ info_fsub, info_photo, info_caption കമാൻഡുകൾ ഇതിൽ നിലനിർത്തുക)
+@Client.on_callback_query(filters.regex(r"^info_startphoto$"))
+async def startphoto_info(client: Client, query: CallbackQuery):
+    text = (
+        "<b>🌅 Start Photo Setup:</b>\n\n"
+        "<code>/setstartphoto image_url</code>"
+    )
+    await query.message.reply_text(text=text)
+    await query.answer()
+
+@Client.on_message(filters.command("setstartphoto") & filters.user(ADMINS))
+async def save_start_photo(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply_text("<b>Provide image URL!</b>", quote=True)
+        return
+    photo_url = message.text.split(None, 1)[1].strip()
+    await db.update_setting(message.chat.id, "start_photo", photo_url)
+    await message.reply_text(f"<b>✅ Start photo updated!</b>", quote=True)
+
+@Client.on_callback_query(filters.regex(r"^info_starttext$"))
+async def starttext_info(client: Client, query: CallbackQuery):
+    text = (
+        "<b>📝 Start Text Setup:</b>\n\n"
+        "<code>/setstartmsg Your text</code>\n"
+        "Variables: `<code>{mention}</code>`"
+    )
+    await query.message.reply_text(text=text)
+    await query.answer()
+
+@Client.on_message(filters.command("setstartmsg") & filters.user(ADMINS))
+async def save_start_msg(client: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply_text("<b>Provide message text!</b>", quote=True)
+        return
+    start_text = message.text.split(None, 1)[1]
+    await db.update_setting(message.chat.id, "start_text", start_text)
+    await message.reply_text(f"<b>✅ Start message updated!</b>", quote=True)
