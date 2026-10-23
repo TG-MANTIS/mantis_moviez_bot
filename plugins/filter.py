@@ -2,6 +2,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from database.database import db
+from utils import get_imdb_data
 
 UPCOMING_KEYWORDS = ["upcoming", "teaser", "trailer", "release", "2027", "2028", "announcement", "first look"]
 
@@ -44,7 +45,7 @@ async def auto_filter(client: Client, message: Message):
         file_name = file["file_name"]
         file_id = file["file_id"]
         file_size = file.get("file_size", "N/A")
-        buttons.append([InlineKeyboardButton(f"📁 {file_size} | {file_name}", callback_data=f"file#{file_id}")])
+        buttons.append([InlineKeyboardButton(f"📁 {file_size} |  {file_name}", callback_data=f"file#{file_id}")])
 
     if len(files) > max_btn:
         buttons.append([InlineKeyboardButton(f"1/{len(files)//max_btn + 1} ➔", callback_data=f"next#{query}#1")])
@@ -56,12 +57,65 @@ async def auto_filter(client: Client, message: Message):
     
     reply_markup = InlineKeyboardMarkup(buttons)
     
-    reply = await message.reply_text(
-        text=f"<b>Results found for: <code>{query}</code>\nSelect your file below:</b>",
-        reply_markup=reply_markup,
-        quote=True
+    # യൂസർ വിവരങ്ങളും സമയവും
+    user = message.from_user
+    user_mention = user.mention if user else "Unknown"
+    
+    base_text = (
+        f"<b>🎬 Requested Movie: <code>{query}</code>\n"
+        f"👤 Requested By: {user_mention}\n\n"
+        f"Select your required file below:</b>"
     )
-    await handle_auto_delete(reply, settings)
+
+    imdb_enabled = settings.get("imdb", True)
+    custom_photo = settings.get("custom_photo")
+    sent_msg = None
+
+    try:
+        if imdb_enabled:
+            imdb_info = await get_imdb_data(query)
+            if imdb_info and imdb_info.get("poster"):
+                poster = imdb_info["poster"]
+                title = imdb_info["title"]
+                year = imdb_info["year"]
+                imdb_url = imdb_info["url"]
+                
+                caption = (
+                    f"<b>🎬 <a href='{imdb_url}'>{title} ({year})</a>\n\n"
+                    f"👤 Requested By: {user_mention}\n\n"
+                    f"Select your file below:</b>"
+                )
+                sent_msg = await message.reply_photo(
+                    photo=poster,
+                    caption=caption,
+                    reply_markup=reply_markup,
+                    quote=True
+                )
+                await handle_auto_delete(sent_msg, settings)
+                return
+
+        # IMDb ഓഫ് ആണെങ്കിലോ പോസ്റ്റർ കിട്ടിയില്ലെങ്കിലോ കസ്റ്റം ഫോട്ടോ പരിശോധിക്കുന്നു
+        if custom_photo:
+            sent_msg = await message.reply_photo(
+                photo=custom_photo,
+                caption=base_text,
+                reply_markup=reply_markup,
+                quote=True
+            )
+        else:
+            sent_msg = await message.reply_text(
+                text=base_text,
+                reply_markup=reply_markup,
+                quote=True
+            )
+    except Exception:
+        sent_msg = await message.reply_text(
+            text=base_text,
+            reply_markup=reply_markup,
+            quote=True
+        )
+
+    await handle_auto_delete(sent_msg, settings)
 
 @Client.on_callback_query()
 async def callback_handler(client: Client, query_data: CallbackQuery):
@@ -103,7 +157,10 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
             InlineKeyboardButton("🎬 Quality", callback_data=f"qual_menu#{movie_query}")
         ])
 
-        await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
+        try:
+            await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
+        except:
+            pass
         await query_data.answer()
 
     elif data.startswith("lang_menu#"):
@@ -167,7 +224,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
 
         buttons = []
         for file in files[:10]:
-            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} | 📦 {file.get('file_size', 'N/A')}", callback_data=f"file#{file['file_id']}")])
+            buttons.append([InlineKeyboardButton(f"📁 {file['file_name']} | {file.get('file_size', 'N/A')}", callback_data=f"file#{file['file_id']}")])
         
         buttons.append([InlineKeyboardButton("« Home Menu", callback_data=f"home#{movie_query}")])
         await query_data.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
