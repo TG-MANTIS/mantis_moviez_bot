@@ -21,7 +21,7 @@ async def auto_filter(client: Client, message: Message):
     for word in UPCOMING_KEYWORDS:
         if word in query_lower:
             reply = await message.reply_text(
-                text=f"❌ <b>Sorry! '{query}' has not been released in theaters or OTT yet.</b>",
+                text=f"❌ <b>Sorry! '{query}' has not been released yet.</b>",
                 quote=True
             )
             await handle_auto_delete(reply, settings)
@@ -31,7 +31,7 @@ async def auto_filter(client: Client, message: Message):
 
     if not files:
         reply = await message.reply_text(
-            text=f"⚠️ <b>The movie/series '{query}' you requested is not found in database!</b>",
+            text=f"⚠️ <b>The movie/series '{query}' you requested is not found!</b>",
             quote=True
         )
         await handle_auto_delete(reply, settings)
@@ -86,7 +86,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
             file_name = file["file_name"]
             file_id = file["file_id"]
             file_size = file.get("file_size", "N/A")
-            buttons.append([InlineKeyboardButton(f"📁 {file_name} | 📦 {file_size}", callback_data=f"file#{file_id}")])
+            buttons.append([InlineKeyboardButton(f"📁 {file_size} |  {file_name}", callback_data=f"file#{file_id}")])
 
         nav_buttons = []
         if page > 0:
@@ -162,7 +162,7 @@ async def callback_handler(client: Client, query_data: CallbackQuery):
 
         files = await db.filter_files(movie_query, lang_val, qual_val)
         if not files:
-            await query_data.answer("No files available for this filter!", show_alert=True)
+            await query_data.answer("No files available!", show_alert=True)
             return
 
         buttons = []
