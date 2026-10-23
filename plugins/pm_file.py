@@ -24,9 +24,9 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
                             [InlineKeyboardButton(f"🔔 Join {chat.title}", url=invite_link)],
                             [InlineKeyboardButton("🔄 Try Again", callback_data=query.data)]
                         ]
-                        await query.answer("⚠️ You must join our update channel to get files!", show_alert=True)
+                        await query.answer("⚠️ You must join our channel first!", show_alert=True)
                         await query.message.reply_text(
-                            text="<b>⚠️ Please join our update channels first. Click 'Try Again' after joining:</b>",
+                            text="<b>⚠️ Please join our update channel first:</b>",
                             reply_markup=InlineKeyboardMarkup(buttons),
                             quote=True
                         )
@@ -35,14 +35,10 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
                     pass
 
     await query.answer("🎉 Sending file to PM...", show_alert=False)
-
     file_id = query.data.split("#")[1]
     
     try:
-        reply_markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🗑️ Close", callback_data="close_media")]]
-        )
-        
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🗑️ Close", callback_data="close_media")]])
         caption = settings.get("caption", "<b>📁 File: {file_name}\n📦 Size: {file_size}</b>")
         caption = caption.format(file_name="Movie File", file_size="")
 
@@ -53,7 +49,7 @@ async def send_file_to_pm(client: Client, query: CallbackQuery):
             reply_markup=reply_markup
         )
     except Exception:
-        await query.answer("Sorry, an error occurred while sending the file!", show_alert=True)
+        await query.answer("Error sending file!", show_alert=True)
 
 @Client.on_callback_query(filters.regex(r"^close_media$"))
 async def close_media(client: Client, query: CallbackQuery):
