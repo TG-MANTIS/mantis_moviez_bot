@@ -1,5 +1,5 @@
 import motor.motor_asyncio
-from config import DATABASE_URL, DATABASE_NAME, COLLECTION_NAME
+from config import DATABASE_URL, DATABASE_NAME, COLLECTION_NAME, DEFAULT_F_SUB
 
 class Database:
     def __init__(self, uri, database_name):
@@ -85,7 +85,7 @@ class Database:
             "max_btn": 8,
             "custom_photo": None,
             "caption": "<b>📁 File: {file_name}\n📦 Size: {file_size}\n\n🤖 Powered by Auto-Filter Bot</b>",
-            "f_sub_channel": None,
+            "f_sub_channel": DEFAULT_F_SUB,
             "start_photo": "https://telegra.ph/file/sample.jpg",
             "start_text": "<b>👋 Hello {mention},\n\nWelcome to Auto-Filter Bot! Send me any movie or series name to search files.</b>"
         }
