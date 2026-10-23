@@ -188,18 +188,21 @@ async def save_maxbtn(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^info_startphoto$"))
 async def startphoto_info(client: Client, query: CallbackQuery):
-    text = "<b>🌅 Start Photo Setup:\n\n<code>/setstartphoto image_url</code></b>"
+    text = "<b>🌅 Start Photo Setup:\n\nSend a photo and reply to it with <code>/setstartphoto</code> to set it as start photo!</b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
 @Client.on_message(filters.command("setstartphoto") & filters.user(ADMINS))
 async def save_start_photo(client: Client, message: Message):
-    if len(message.command) < 2:
-        await message.reply_text("<b>Provide image URL!</b>", quote=True)
+    photo = message.reply_to_message.photo if message.reply_to_message else message.photo
+    
+    if not photo:
+        await message.reply_text("<b>❌ Please reply to a photo or send a photo with /setstartphoto command!</b>", quote=True)
         return
-    photo_url = message.text.split(None, 1)[1].strip()
-    await db.update_setting(message.chat.id, "start_photo", photo_url)
-    await message.reply_text(f"<b>✅ Start photo updated!</b>", quote=True)
+    
+    file_id = photo.file_id
+    await db.update_setting(message.chat.id, "start_photo", file_id)
+    await message.reply_text(f"<b>✅ Start photo updated successfully!</b>", quote=True)
 
 @Client.on_callback_query(filters.regex(r"^info_starttext$"))
 async def starttext_info(client: Client, query: CallbackQuery):
