@@ -113,71 +113,52 @@ async def toggle_settings(client: Client, query: CallbackQuery):
 
 @Client.on_callback_query(filters.regex(r"^info_fsub$"))
 async def fsub_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>📢 Force Subscription (F-Sub) Setup Instructions:</b>\n\n"
-        "Send the command in bot private chat:\n"
-        "<code>/setfsub channel_id</code>\n\n"
-        "<b>Example:</b>\n"
-        "<code>/setfsub -1001234567890</code>"
-    )
+    text = "<b>📢 Force Subscription (F-Sub) Setup:\n\n<code>/setfsub channel_id</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
 @Client.on_message(filters.command("setfsub") & filters.user(ADMINS))
 async def save_fsub_channel(client: Client, message: Message):
     if len(message.command) < 2:
-        await message.reply_text("<b>Please provide the channel ID!</b>", quote=True)
+        await message.reply_text("<b>Provide channel ID!</b>", quote=True)
         return
     channel_id = message.text.split(None, 1)[1].strip()
     await db.update_setting(message.chat.id, "f_sub_channel", channel_id)
-    await message.reply_text(f"<b>✅ F-Sub channel ID saved!</b>\nID: `{channel_id}`", quote=True)
+    await message.reply_text(f"<b>✅ F-Sub channel ID saved:</b> `{channel_id}`", quote=True)
 
 @Client.on_callback_query(filters.regex(r"^info_photo$"))
 async def photo_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>🖼️ Custom Photo Setup Instructions:</b>\n\n"
-        "<code>/setphoto direct_image_url</code>\n\n"
-        "<b>Example:</b>\n"
-        "<code>/setphoto https://telegra.ph/file/sample.jpg</code>"
-    )
+    text = "<b>🖼️ Custom Photo Setup:\n\n<code>/setphoto image_url</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
 @Client.on_message(filters.command("setphoto") & filters.user(ADMINS))
 async def save_custom_photo(client: Client, message: Message):
     if len(message.command) < 2:
-        await message.reply_text("<b>Please provide the image URL!</b>", quote=True)
+        await message.reply_text("<b>Provide image URL!</b>", quote=True)
         return
     photo_url = message.text.split(None, 1)[1].strip()
     await db.update_setting(message.chat.id, "custom_photo", photo_url)
-    await message.reply_text(f"<b>✅ Custom photo updated!</b>\n`{photo_url}`", quote=True)
+    await message.reply_text(f"<b>✅ Custom photo updated!</b>", quote=True)
 
 @Client.on_callback_query(filters.regex(r"^info_caption$"))
 async def caption_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>📝 Custom Caption Setup Guide:</b>\n\n"
-        "<code>/setcaption Your custom caption text here</code>\n\n"
-        "<b>Variables:</b> `<code>{file_name}</code>`, `<code>{file_size}</code>`"
-    )
+    text = "<b>📝 Custom Caption Setup:\n\n<code>/setcaption Your caption text</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
 @Client.on_message(filters.command("setcaption") & filters.user(ADMINS))
 async def save_custom_caption(client: Client, message: Message):
     if len(message.command) < 2:
-        await message.reply_text("<b>Please provide caption text!</b>", quote=True)
+        await message.reply_text("<b>Provide caption text!</b>", quote=True)
         return
     caption_text = message.text.split(None, 1)[1]
     await db.update_setting(message.chat.id, "caption", caption_text)
-    await message.reply_text(f"<b>✅ Custom caption updated!</b>\n{caption_text}", quote=True)
+    await message.reply_text(f"<b>✅ Custom caption updated!</b>", quote=True)
 
 @Client.on_callback_query(filters.regex(r"^info_autodel$"))
 async def autodel_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>🗑️ Auto Delete Setup:</b>\n\n"
-        "<code>/setautodel 300</code> (300 seconds)\n"
-        "<code>/setautodel 0</code> (Turn OFF)"
-    )
+    text = "<b>🗑️ Auto Delete Setup:\n\n<code>/setautodel 300</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
@@ -192,10 +173,7 @@ async def save_autodel(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^info_maxbtn$"))
 async def maxbtn_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>🔢 Results Count Setup:</b>\n\n"
-        "<code>/setmaxbtn 8</code>"
-    )
+    text = "<b>🔢 Results Count Setup:\n\n<code>/setmaxbtn 8</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
@@ -210,10 +188,7 @@ async def save_maxbtn(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^info_startphoto$"))
 async def startphoto_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>🌅 Start Photo Setup:</b>\n\n"
-        "<code>/setstartphoto image_url</code>"
-    )
+    text = "<b>🌅 Start Photo Setup:\n\n<code>/setstartphoto image_url</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
@@ -228,11 +203,7 @@ async def save_start_photo(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^info_starttext$"))
 async def starttext_info(client: Client, query: CallbackQuery):
-    text = (
-        "<b>📝 Start Text Setup:</b>\n\n"
-        "<code>/setstartmsg Your text</code>\n"
-        "Variables: `<code>{mention}</code>`"
-    )
+    text = "<b>📝 Start Text Setup:\n\n<code>/setstartmsg Your text</code></b>"
     await query.message.reply_text(text=text)
     await query.answer()
 
