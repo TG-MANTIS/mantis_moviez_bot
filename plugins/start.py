@@ -152,15 +152,19 @@ async def help_callback(client: Client, query: CallbackQuery):
         except Exception:
             pass
 
-# 5. About ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ (കോഡിൽ ഫിക്സ് ചെയ്ത ഫോട്ടോ)
+# 5. About ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ (ഡൈനാമിക് ബോട്ട് നെയിമും ഹൈപ്പർലിങ്കും ചേർത്തത്)
 @Client.on_callback_query(filters.regex("^about$"))
 async def about_callback(client: Client, query: CallbackQuery):
-    bot_name = client.me.mention if client.me else "Auto Filter Bot"
+    bot_name = client.me.first_name if client.me else "Auto Filter Bot"
+    bot_username = client.me.username if client.me else "bot"
     owner_name = OWNER_NAME if 'OWNER_NAME' in globals() or 'OWNER_NAME' in locals() else "Ajeesh Aji"
+    
+    # ഹൈപ്പർലിങ്ക് ടാഗ് ഉപയോഗിച്ച് ബോട്ടിന്റെ പേര് പ്രൊഫൈൽ ലിങ്കിലേക്ക് കണക്റ്റ് ചെയ്തിരിക്കുന്നു
+    bot_display = f"<a href='https://t.me/{bot_username}'>{bot_name}</a>" if client.me else bot_name
     
     about_text = (
         "<b>🤖 My Details:</b>\n\n"
-        f"<b>• Bot Name:</b> {bot_name}\n"
+        f"<b>• Bot Name:</b> {bot_display}\n"
         "<b>• Developer:</b> <code>Ajeesh Aji</code>\n"
         f"<b>• Bot Owner:</b> <code>{owner_name}</code>\n"
         "<b>• Language:</b> <code>Python 3</code>\n"
