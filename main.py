@@ -28,5 +28,5 @@ async def main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    # എറർ വരാത്ത രീതിയിൽ asyncio.run() ഉപയോഗിച്ച് ലൂപ്പ് സ്റ്റാർട്ട് ചെയ്യുന്നു
+    # ഇവന്റ് ലൂപ്പ് എറർ വരാതിരിക്കാൻ asyncio.run() ഉപയോഗിക്കുന്നു
     asyncio.run(main())
