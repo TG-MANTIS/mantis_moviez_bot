@@ -87,7 +87,8 @@ class Database:
             "caption": "<b>📁 File: {file_name}\n📦 Size: {file_size}\n\n🤖 Powered by Auto-Filter Bot</b>",
             "f_sub_channel": DEFAULT_F_SUB,
             "start_photo": "https://telegra.ph/file/sample.jpg",
-            "start_text": "<b>👋 Hello {mention},\n\nWelcome to Auto-Filter Bot! Send me any movie or series name to search files.</b>"
+            "start_text": "<b>👋 Hello {mention},\n\nWelcome to Auto-Filter Bot! Send me any movie or series name to search files.</b>",
+            "anti_spam": True  # 👈 ആന്റി-സ്പാം ഫീച്ചറിനായുള്ള പുതിയ ഡിഫോൾട്ട് സെറ്റിംഗ്സ്
         }
         user = await self._settings.find_one({"chat_id": chat_id})
         if not user:
