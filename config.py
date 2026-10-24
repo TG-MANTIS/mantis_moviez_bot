@@ -16,6 +16,9 @@ DB_CHANNEL = [int(ch.strip()) for ch in os.environ.get("DB_CHANNEL", "").split("
 LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", 0))
 F_SUB_CHANNEL = os.environ.get("F_SUB_CHANNEL", None)
 
+# ഫോഴ്സ് സബ്സ്ക്രിപ്ഷനായി ഉപയോഗിക്കുന്ന വേരിയബിൾ ഇവിടെ ചേർത്തിരിക്കുന്നു
+DEFAULT_F_SUB = os.environ.get("DEFAULT_F_SUB", F_SUB_CHANNEL)
+
 # ബോട്ട് ഓണറുടെ വിവരങ്ങൾ
 OWNER_ID = int(os.environ.get("OWNER_ID", 0))
 OWNER_NAME = os.environ.get("OWNER_NAME", "Ajeesh Aji")
