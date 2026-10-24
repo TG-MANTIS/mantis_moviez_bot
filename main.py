@@ -28,4 +28,5 @@ async def main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    # എറർ വരാത്ത രീതിയിൽ asyncio.run() ഉപയോഗിച്ച് ലൂപ്പ് സ്റ്റാർട്ട് ചെയ്യുന്നു
+    asyncio.run(main())
