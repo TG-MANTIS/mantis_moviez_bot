@@ -13,7 +13,7 @@ app = Client(
 )
 
 async def main():
-    # ബോട്ട് സ്റ്റാർട്ട് ചെയ്യുന്നു
+    # bot start 
     await app.start()
     print("Bot Started Successfully!")
     
