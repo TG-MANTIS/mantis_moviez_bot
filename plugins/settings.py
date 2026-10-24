@@ -12,6 +12,7 @@ async def open_settings(client: Client, message: Message):
     goodbye_status = "✅ ON" if settings.get("goodbye", True) else "❌ OFF"
     fsub_status = "✅ ON" if settings.get("f_sub", True) else "❌ OFF"
     imdb_status = "✅ ON" if settings.get("imdb", True) else "❌ OFF"
+    antispam_status = "✅ ON" if settings.get("anti_spam", True) else "❌ OFF" # 👈 ആന്റി-സ്പാം സ്റ്റാറ്റസ്
     autodel_time = settings.get("auto_delete", 300)
     autodel_status = f"✅ ({autodel_time}s)" if autodel_time > 0 else "❌ OFF"
     max_btn = settings.get("max_btn", 8)
@@ -24,6 +25,10 @@ async def open_settings(client: Client, message: Message):
         [
             InlineKeyboardButton("📢 Force Sub (F-Sub)", callback_data="info_fsub"),
             InlineKeyboardButton(f"🎬 IMDb Poster: {imdb_status}", callback_data="toggle_imdb")
+        ],
+        [
+            # 👈 ആന്റി-സ്പാം ടോഗ്ഗൽ ബട്ടൺ ഇവിടെ ചേർത്തിരിക്കുന്നു
+            InlineKeyboardButton(f"🛡️ Anti-Spam: {antispam_status}", callback_data="toggle_antispam")
         ],
         [
             InlineKeyboardButton(f"🗑️ Auto Delete: {autodel_status}", callback_data="info_autodel"),
@@ -74,11 +79,17 @@ async def toggle_settings(client: Client, query: CallbackQuery):
         await db.update_setting(chat_id, "imdb", new_val)
         await query.answer(f"IMDb Poster turned {'ON' if new_val else 'OFF'}!")
 
+    elif data == "toggle_antispam": # 👈 ആന്റി-സ്പാം ഓൺ/ഓഫ് ചെയ്യാനുള്ള കോഡ്
+        new_val = not settings.get("anti_spam", True)
+        await db.update_setting(chat_id, "anti_spam", new_val)
+        await query.answer(f"Anti-Spam turned {'ON' if new_val else 'OFF'}!")
+
     settings = await db.get_settings(chat_id)
     w_status = "✅ ON" if settings.get("welcome", True) else "❌ OFF"
     g_status = "✅ ON" if settings.get("goodbye", True) else "❌ OFF"
     f_status = "✅ ON" if settings.get("f_sub", True) else "❌ OFF"
     i_status = "✅ ON" if settings.get("imdb", True) else "❌ OFF"
+    as_status = "✅ ON" if settings.get("anti_spam", True) else "❌ OFF" # 👈 ആന്റി-സ്പാം സ്റ്റാറ്റസ് റിഫ്രഷ് ചെയ്യാൻ
     autodel_time = settings.get("auto_delete", 300)
     autodel_status = f"✅ ({autodel_time}s)" if autodel_time > 0 else "❌ OFF"
     max_btn = settings.get("max_btn", 8)
@@ -91,6 +102,10 @@ async def toggle_settings(client: Client, query: CallbackQuery):
         [
             InlineKeyboardButton("📢 Force Sub (F-Sub)", callback_data="info_fsub"),
             InlineKeyboardButton(f"🎬 IMDb Poster: {i_status}", callback_data="toggle_imdb")
+        ],
+        [
+            # 👈 ബട്ടൺ ലിസ്റ്റിലും ആന്റി-സ്പാം അപ്ഡേറ്റ് ചെയ്തു
+            InlineKeyboardButton(f"🛡️ Anti-Spam: {as_status}", callback_data="toggle_antispam")
         ],
         [
             InlineKeyboardButton(f"🗑️ Auto Delete: {autodel_status}", callback_data="info_autodel"),
